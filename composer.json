@@ -25,6 +25,11 @@
             "WeDevs\\WPKit\\Tests\\": "tests/phpunit/tests/"
         }
     },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
     "minimum-stability": "stable",
     "scripts": {
         "test": "phpunit",
