@@ -709,7 +709,7 @@ abstract class BaseDataStore extends SqlQuery implements DataStoreInterface {
 
 		$table_name = $this->get_table_name();
 
-		if ( ! str_starts_with( $table_name, $wpdb->prefix ) ) {
+		if ( strpos( $table_name, $wpdb->prefix ) !== 0 ) {
 			$table_name = $wpdb->prefix . $table_name;
 		}
 
