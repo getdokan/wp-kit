@@ -44,6 +44,46 @@ class MigrationHooks {
 
 		add_action( "{$this->prefix}_upgrade_finished", [ $this, 'on_upgrade_finished' ] );
 		add_action( "{$this->prefix}_upgrade_is_not_required", [ $this, 'on_upgrade_not_required' ] );
+
+		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
+	}
+
+	/**
+	 * Register REST API routes for migration status.
+	 */
+	public function register_rest_routes(): void {
+		register_rest_route(
+			"{$this->prefix}/v1",
+			'/migration/status',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ $this, 'rest_get_status' ],
+				'permission_callback' => function () {
+					return current_user_can( 'update_plugins' );
+				},
+			]
+		);
+	}
+
+	/**
+	 * REST callback: get migration status.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function rest_get_status(): \WP_REST_Response {
+		$status = $this->manager->get_status();
+
+		return new \WP_REST_Response(
+			[
+				'summary'            => $status->get_summary(),
+				'log'                => $status->get_log(),
+				'is_running'         => $status->is_running(),
+				'is_upgrade_required' => $this->manager->is_upgrade_required(),
+				'db_version'         => $this->manager->get_registry()->get_db_installed_version(),
+				'plugin_version'     => $this->manager->get_registry()->get_plugin_version(),
+			],
+			200
+		);
 	}
 
 	/**

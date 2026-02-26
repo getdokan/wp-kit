@@ -46,8 +46,17 @@ class BackgroundProcessTest extends TestCase {
 			->once()
 			->andReturn( [] );
 
+		Functions\expect( 'get_option' )
+			->with( 'testplugin_bg_test_process_total', 0 )
+			->once()
+			->andReturn( 0 );
+
 		Functions\expect( 'update_option' )
 			->with( 'testplugin_bg_test_process', [ 'item1', 'item2' ], false )
+			->once();
+
+		Functions\expect( 'update_option' )
+			->with( 'testplugin_bg_test_process_total', 2, false )
 			->once();
 
 		$result = $this->process->push_to_queue( [ 'item1', 'item2' ] );
@@ -61,8 +70,17 @@ class BackgroundProcessTest extends TestCase {
 			->once()
 			->andReturn( [ 'existing' ] );
 
+		Functions\expect( 'get_option' )
+			->with( 'testplugin_bg_test_process_total', 0 )
+			->once()
+			->andReturn( 1 );
+
 		Functions\expect( 'update_option' )
 			->with( 'testplugin_bg_test_process', [ 'existing', 'new_item' ], false )
+			->once();
+
+		Functions\expect( 'update_option' )
+			->with( 'testplugin_bg_test_process_total', 2, false )
 			->once();
 
 		$this->process->push_to_queue( [ 'new_item' ] );
@@ -114,6 +132,10 @@ class BackgroundProcessTest extends TestCase {
 			->with( 'testplugin_bg_test_process' )
 			->once();
 
+		Functions\expect( 'delete_option' )
+			->with( 'testplugin_bg_test_process_total' )
+			->once();
+
 		$this->process->handle_cron();
 
 		$this->assertSame( [ 'item_a', 'item_b' ], $this->process->processed_items );
@@ -149,9 +171,13 @@ class BackgroundProcessTest extends TestCase {
 		$this->assertFalse( $this->process->is_processing() );
 	}
 
-	public function test_cancel_clears_queue_and_unschedules(): void {
+	public function test_cancel_clears_queue_total_and_unschedules(): void {
 		Functions\expect( 'delete_option' )
 			->with( 'testplugin_bg_test_process' )
+			->once();
+
+		Functions\expect( 'delete_option' )
+			->with( 'testplugin_bg_test_process_total' )
 			->once();
 
 		Functions\expect( 'wp_clear_scheduled_hook' )
@@ -159,5 +185,55 @@ class BackgroundProcessTest extends TestCase {
 			->once();
 
 		$this->process->cancel();
+	}
+
+	public function test_get_progress_returns_stats(): void {
+		Functions\expect( 'get_option' )
+			->with( 'testplugin_bg_test_process_total', 0 )
+			->once()
+			->andReturn( 50 );
+
+		Functions\expect( 'get_option' )
+			->with( 'testplugin_bg_test_process', [] )
+			->once()
+			->andReturn( array_fill( 0, 20, 'item' ) );
+
+		Functions\expect( 'get_option' )
+			->with( 'testplugin_bg_test_process', false )
+			->once()
+			->andReturn( array_fill( 0, 20, 'item' ) );
+
+		$progress = $this->process->get_progress();
+
+		$this->assertTrue( $progress['is_processing'] );
+		$this->assertSame( 50, $progress['total'] );
+		$this->assertSame( 30, $progress['completed'] );
+		$this->assertSame( 20, $progress['remaining'] );
+		$this->assertSame( 60, $progress['percentage'] );
+	}
+
+	public function test_get_progress_returns_zero_when_no_items(): void {
+		Functions\expect( 'get_option' )
+			->with( 'testplugin_bg_test_process_total', 0 )
+			->once()
+			->andReturn( 0 );
+
+		Functions\expect( 'get_option' )
+			->with( 'testplugin_bg_test_process', [] )
+			->once()
+			->andReturn( [] );
+
+		Functions\expect( 'get_option' )
+			->with( 'testplugin_bg_test_process', false )
+			->once()
+			->andReturn( false );
+
+		$progress = $this->process->get_progress();
+
+		$this->assertFalse( $progress['is_processing'] );
+		$this->assertSame( 0, $progress['total'] );
+		$this->assertSame( 0, $progress['completed'] );
+		$this->assertSame( 0, $progress['remaining'] );
+		$this->assertSame( 0, $progress['percentage'] );
 	}
 }
