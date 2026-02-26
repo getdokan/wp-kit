@@ -41,6 +41,16 @@
 		<exclude-pattern>src/DataLayer/DataStore/BaseDataStore\.php</exclude-pattern>
 	</rule>
 
+	<!-- Allow reserved keyword parameter names (e.g. $namespace, $object, $class) -->
+	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+		<severity>0</severity>
+	</rule>
+
+	<!-- Allow unused parameters in filter/action callbacks and REST handlers -->
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+		<severity>0</severity>
+	</rule>
+
 	<!-- PHPCompatibility -->
 	<rule ref="PHPCompatibilityWP"/>
 </ruleset>

@@ -125,15 +125,15 @@ class SqlQuery {
 	 * @return string
 	 */
 	public function get_query_statement(): string {
-		$select   = $this->get_sql_clause( 'select' );
-		$from     = $this->get_sql_clause( 'from' );
-		$join     = $this->get_sql_clause( 'join' );
+		$select    = $this->get_sql_clause( 'select' );
+		$from      = $this->get_sql_clause( 'from' );
+		$join      = $this->get_sql_clause( 'join' );
 		$left_join = $this->get_sql_clause( 'left_join' );
-		$where    = $this->get_sql_clause( 'where' );
-		$group_by = $this->get_sql_clause( 'group_by' );
-		$having   = $this->get_sql_clause( 'having' );
-		$order_by = $this->get_sql_clause( 'order_by' );
-		$limit    = $this->get_sql_clause( 'limit' );
+		$where     = $this->get_sql_clause( 'where' );
+		$group_by  = $this->get_sql_clause( 'group_by' );
+		$having    = $this->get_sql_clause( 'having' );
+		$order_by  = $this->get_sql_clause( 'order_by' );
+		$limit     = $this->get_sql_clause( 'limit' );
 
 		$query = "SELECT {$select} FROM {$from}";
 

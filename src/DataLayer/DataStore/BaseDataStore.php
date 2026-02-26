@@ -255,7 +255,7 @@ abstract class BaseDataStore extends SqlQuery implements DataStoreInterface {
 	public function update_by( array $where, array $data_to_update ): int {
 		global $wpdb;
 
-		$fields_format = $this->get_fields_with_format();
+		$fields_format                               = $this->get_fields_with_format();
 		$fields_format[ $this->get_id_field_name() ] = $this->get_id_field_format();
 
 		$data_format = [];
@@ -394,9 +394,9 @@ abstract class BaseDataStore extends SqlQuery implements DataStoreInterface {
 		}
 
 		// Order.
-		$allowed_fields   = array_merge( $this->get_fields(), [ $this->get_id_field_name() ] );
-		$orderby          = in_array( $args['orderby'], $allowed_fields, true ) ? $args['orderby'] : $this->get_id_field_name();
-		$order            = strtoupper( $args['order'] ) === 'ASC' ? 'ASC' : 'DESC';
+		$allowed_fields = array_merge( $this->get_fields(), [ $this->get_id_field_name() ] );
+		$orderby        = in_array( $args['orderby'], $allowed_fields, true ) ? $args['orderby'] : $this->get_id_field_name();
+		$order          = strtoupper( $args['order'] ) === 'ASC' ? 'ASC' : 'DESC';
 		$this->add_sql_clause( 'order_by', "{$orderby} {$order}" );
 
 		// Pagination.
@@ -475,10 +475,10 @@ abstract class BaseDataStore extends SqlQuery implements DataStoreInterface {
 	protected function build_query_where( array $args ): void {
 		global $wpdb;
 
-		$fields       = $this->get_fields();
-		$field_format = $this->get_fields_with_format();
+		$fields                                     = $this->get_fields();
+		$field_format                               = $this->get_fields_with_format();
 		$field_format[ $this->get_id_field_name() ] = $this->get_id_field_format();
-		$reserved     = array_keys( $this->get_default_query_args() );
+		$reserved                                   = array_keys( $this->get_default_query_args() );
 
 		foreach ( $args as $key => $value ) {
 			if ( in_array( $key, $reserved, true ) || null === $value ) {
@@ -592,8 +592,8 @@ abstract class BaseDataStore extends SqlQuery implements DataStoreInterface {
 	protected function prepare_where_clause( array $data ): string {
 		global $wpdb;
 
-		$where        = [ '1=1' ];
-		$field_format = $this->get_fields_with_format();
+		$where                                      = [ '1=1' ];
+		$field_format                               = $this->get_fields_with_format();
 		$field_format[ $this->get_id_field_name() ] = $this->get_id_field_format();
 
 		foreach ( $data as $key => $value ) {

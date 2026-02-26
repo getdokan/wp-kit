@@ -378,7 +378,7 @@ abstract class BaseModel implements ModelInterface {
 			return null;
 		}
 
-		$model = DataLayerFactory::make_model( static::class, $id );
+		$model             = DataLayerFactory::make_model( static::class, $id );
 		$model->data_store = $store;
 
 		try {
@@ -429,7 +429,7 @@ abstract class BaseModel implements ModelInterface {
 					continue;
 				}
 
-				$model = new static();
+				$model             = new static();
 				$model->data_store = $store;
 				$model->set_id( (int) ( $row->{$id_field} ?? 0 ) );
 				$model->set_props( (array) $row );
