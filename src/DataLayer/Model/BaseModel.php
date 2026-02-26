@@ -360,7 +360,7 @@ abstract class BaseModel implements ModelInterface {
 	 *
 	 * @return static|null The populated model, or null if not found.
 	 */
-	public static function find( int $id ): ?static {
+	public static function find( int $id ): ?self {
 		$store = DataLayerFactory::make_store( static::class );
 
 		if ( ! $store ) {

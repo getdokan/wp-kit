@@ -71,7 +71,7 @@ class QueryResult implements IteratorAggregate, Countable {
 	 *
 	 * @return static
 	 */
-	public static function from_array( array $result ): static {
+	public static function from_array( array $result ): self {
 		return new static(
 			is_array( $result['items'] ) ? $result['items'] : [],
 			(int) $result['total'],
