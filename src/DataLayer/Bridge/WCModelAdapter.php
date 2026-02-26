@@ -1,4 +1,9 @@
 <?php
+/**
+ * Adapter that wraps a WPKit model as a WC_Data object.
+ *
+ * @package WeDevs\WPKit\DataLayer\Bridge
+ */
 
 namespace WeDevs\WPKit\DataLayer\Bridge;
 
@@ -24,6 +29,8 @@ class WCModelAdapter extends \WC_Data {
 	protected ModelInterface $wpkit_model;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param ModelInterface $model The WPKit model to wrap.
 	 * @param int            $id    Optional object ID.
 	 */

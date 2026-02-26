@@ -1,4 +1,9 @@
 <?php
+/**
+ * Central notice collector and manager.
+ *
+ * @package WeDevs\WPKit\AdminNotification
+ */
 
 namespace WeDevs\WPKit\AdminNotification;
 
@@ -34,6 +39,8 @@ class NoticeManager {
 	protected string $prefix;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param string $prefix Plugin-specific prefix (e.g., 'dokan').
 	 */
 	public function __construct( string $prefix ) {
@@ -88,7 +95,7 @@ class NoticeManager {
 			$notices = array_filter(
 				$notices,
 				function ( $notice ) use ( $scope ) {
-					return $scope === ( $notice['scope'] ?? 'local' );
+					return ( $notice['scope'] ?? 'local' ) === $scope;
 				}
 			);
 		}

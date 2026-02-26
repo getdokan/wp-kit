@@ -1,4 +1,9 @@
 <?php
+/**
+ * WP Cron-based background process for batch operations.
+ *
+ * @package WeDevs\WPKit\Migration
+ */
 
 namespace WeDevs\WPKit\Migration;
 
@@ -47,6 +52,9 @@ abstract class BackgroundProcess {
 	 */
 	protected int $time_limit = 20;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		if ( ! $this->action ) {
 			$this->action = $this->prefix . '_' . md5( static::class );
@@ -75,6 +83,11 @@ abstract class BackgroundProcess {
 		$existing  = array_merge( $existing, $items );
 
 		update_option( $batch_key, $existing, false );
+
+		// Track total items for progress reporting.
+		$total_key     = $this->get_total_key();
+		$current_total = (int) get_option( $total_key, 0 );
+		update_option( $total_key, $current_total + count( $items ), false );
 
 		return $this;
 	}
@@ -124,6 +137,7 @@ abstract class BackgroundProcess {
 			wp_schedule_single_event( time() + 10, $this->get_cron_hook() );
 		} else {
 			delete_option( $batch_key );
+			delete_option( $this->get_total_key() );
 			$this->complete();
 		}
 	}
@@ -149,7 +163,27 @@ abstract class BackgroundProcess {
 	 */
 	public function cancel(): void {
 		delete_option( $this->get_batch_key() );
+		delete_option( $this->get_total_key() );
 		wp_clear_scheduled_hook( $this->get_cron_hook() );
+	}
+
+	/**
+	 * Get the progress of the background process.
+	 *
+	 * @return array{is_processing: bool, total: int, completed: int, remaining: int, percentage: int}
+	 */
+	public function get_progress(): array {
+		$total     = (int) get_option( $this->get_total_key(), 0 );
+		$remaining = count( get_option( $this->get_batch_key(), [] ) );
+		$completed = max( 0, $total - $remaining );
+
+		return [
+			'is_processing' => $this->is_processing(),
+			'total'         => $total,
+			'completed'     => $completed,
+			'remaining'     => $remaining,
+			'percentage'    => $total > 0 ? (int) round( ( $completed / $total ) * 100 ) : 0,
+		];
 	}
 
 	/**
@@ -159,6 +193,15 @@ abstract class BackgroundProcess {
 	 */
 	protected function get_batch_key(): string {
 		return $this->prefix . '_bg_' . $this->action;
+	}
+
+	/**
+	 * Get the option key for the total items count.
+	 *
+	 * @return string
+	 */
+	protected function get_total_key(): string {
+		return $this->prefix . '_bg_' . $this->action . '_total';
 	}
 
 	/**

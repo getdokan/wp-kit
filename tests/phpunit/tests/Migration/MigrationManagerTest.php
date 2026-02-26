@@ -4,6 +4,7 @@ namespace WeDevs\WPKit\Tests\Migration;
 
 use WeDevs\WPKit\Migration\MigrationManager;
 use WeDevs\WPKit\Migration\MigrationRegistry;
+use WeDevs\WPKit\Migration\MigrationStatus;
 use WeDevs\WPKit\Tests\TestCase;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -113,7 +114,7 @@ class MigrationManagerTest extends TestCase {
 			->once()
 			->andReturn( [] );
 
-		Functions\expect( 'update_option' )->once();
+		Functions\expect( 'update_option' )->zeroOrMoreTimes();
 		Functions\expect( 'delete_option' )
 			->with( 'testplugin_is_upgrading_db' )
 			->once();
@@ -123,5 +124,115 @@ class MigrationManagerTest extends TestCase {
 			->once();
 
 		$this->manager->do_upgrade();
+	}
+
+	public function test_get_log_option_key(): void {
+		$this->assertSame( 'testplugin_migration_log', $this->manager->get_log_option_key() );
+	}
+
+	public function test_get_status_returns_migration_status_instance(): void {
+		$status = $this->manager->get_status();
+
+		$this->assertInstanceOf( MigrationStatus::class, $status );
+	}
+
+	public function test_do_upgrade_logs_migration_start_and_complete(): void {
+		$migration_class = Mockery::mock( 'alias:TestMigration_V_1_0_0' );
+		$migration_class->shouldReceive( 'run' )->with( null )->once();
+		$migration_class->shouldReceive( 'update_db_version' )->once();
+
+		// Stateful mock: track migration log across get/update_option calls.
+		$stored_log     = [];
+		$logged_entries = [];
+
+		Functions\expect( 'get_option' )
+			->andReturnUsing( function ( $key, $default = false ) use ( &$stored_log ) {
+				if ( $key === 'testplugin_is_upgrading_db' && $default === null ) {
+					return [ '1.0.0' => [ 'TestMigration_V_1_0_0' ] ];
+				}
+				if ( $key === 'testplugin_migration_log' ) {
+					return $stored_log;
+				}
+				return $default;
+			} );
+
+		Functions\expect( 'update_option' )
+			->andReturnUsing( function ( $key, $value ) use ( &$stored_log, &$logged_entries ) {
+				if ( $key === 'testplugin_migration_log' ) {
+					$stored_log       = $value;
+					$logged_entries[] = $value;
+				}
+				return true;
+			} );
+
+		Functions\expect( 'delete_option' )
+			->with( 'testplugin_is_upgrading_db' )
+			->once();
+
+		Functions\expect( 'do_action' )
+			->with( 'testplugin_upgrade_finished' )
+			->once();
+
+		$this->manager->do_upgrade();
+
+		$this->assertCount( 2, $logged_entries );
+
+		// First call: log_migration_start.
+		$this->assertArrayHasKey( '1.0.0', $logged_entries[0] );
+		$this->assertSame( 'running', $logged_entries[0]['1.0.0']['status'] );
+		$this->assertSame( 'TestMigration_V_1_0_0', $logged_entries[0]['1.0.0']['class'] );
+		$this->assertNotNull( $logged_entries[0]['1.0.0']['started_at'] );
+		$this->assertNull( $logged_entries[0]['1.0.0']['completed_at'] );
+
+		// Second call: log_migration_complete.
+		$this->assertSame( 'completed', $logged_entries[1]['1.0.0']['status'] );
+		$this->assertNotNull( $logged_entries[1]['1.0.0']['completed_at'] );
+		$this->assertNull( $logged_entries[1]['1.0.0']['error'] );
+	}
+
+	public function test_do_upgrade_logs_migration_failure(): void {
+		$exception       = new \RuntimeException( 'Table creation failed' );
+		$migration_class = Mockery::mock( 'alias:FailingMigration_V_2_0_0' );
+		$migration_class->shouldReceive( 'run' )->with( null )->once()->andThrow( $exception );
+
+		// Stateful mock for migration log.
+		$stored_log     = [];
+		$logged_entries = [];
+
+		Functions\expect( 'get_option' )
+			->andReturnUsing( function ( $key, $default = false ) use ( &$stored_log ) {
+				if ( $key === 'testplugin_is_upgrading_db' && $default === null ) {
+					return [ '2.0.0' => [ 'FailingMigration_V_2_0_0' ] ];
+				}
+				if ( $key === 'testplugin_migration_log' ) {
+					return $stored_log;
+				}
+				return $default;
+			} );
+
+		Functions\expect( 'update_option' )
+			->andReturnUsing( function ( $key, $value ) use ( &$stored_log, &$logged_entries ) {
+				if ( $key === 'testplugin_migration_log' ) {
+					$stored_log       = $value;
+					$logged_entries[] = $value;
+				}
+				return true;
+			} );
+
+		try {
+			$this->manager->do_upgrade();
+			$this->fail( 'Expected RuntimeException was not thrown.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'Table creation failed', $e->getMessage() );
+		}
+
+		$this->assertCount( 2, $logged_entries );
+
+		// First call: log_migration_start.
+		$this->assertSame( 'running', $logged_entries[0]['2.0.0']['status'] );
+
+		// Second call: log_migration_failed.
+		$this->assertSame( 'failed', $logged_entries[1]['2.0.0']['status'] );
+		$this->assertSame( 'Table creation failed', $logged_entries[1]['2.0.0']['error'] );
 	}
 }

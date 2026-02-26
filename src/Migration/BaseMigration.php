@@ -1,4 +1,9 @@
 <?php
+/**
+ * Base migration class.
+ *
+ * @package WeDevs\WPKit\Migration
+ */
 
 namespace WeDevs\WPKit\Migration;
 
@@ -40,7 +45,9 @@ abstract class BaseMigration implements MigrationInterface {
 	];
 
 	/**
-	 * {@inheritdoc}
+	 * Run all public static methods in the migration class.
+	 *
+	 * @param string|null $required_version Minimum DB version required to run.
 	 */
 	public static function run( ?string $required_version = null ): void {
 		if ( $required_version ) {

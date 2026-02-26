@@ -1,4 +1,9 @@
 <?php
+/**
+ * Migration registry that tracks version → class mappings.
+ *
+ * @package WeDevs\WPKit\Migration
+ */
 
 namespace WeDevs\WPKit\Migration;
 
@@ -31,6 +36,8 @@ class MigrationRegistry {
 	protected string $plugin_version;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param string $db_version_key Option key for DB version.
 	 * @param string $plugin_version Current plugin version.
 	 */

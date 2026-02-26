@@ -1,4 +1,9 @@
 <?php
+/**
+ * REST API controller for admin notices.
+ *
+ * @package WeDevs\WPKit\AdminNotification
+ */
 
 namespace WeDevs\WPKit\AdminNotification;
 
@@ -33,6 +38,8 @@ class NoticeRESTController {
 	protected string $base = 'notices';
 
 	/**
+	 * Constructor.
+	 *
 	 * @param NoticeManager $manager   Notice manager.
 	 * @param string        $namespace REST API namespace (e.g., 'dokan/v1').
 	 */
@@ -64,6 +71,25 @@ class NoticeRESTController {
 				],
 			]
 		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->base . '/dismiss',
+			[
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ $this, 'dismiss_notice' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+					'args'                => [
+						'key' => [
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						],
+					],
+				],
+			]
+		);
 	}
 
 	/**
@@ -74,10 +100,31 @@ class NoticeRESTController {
 	 * @return WP_REST_Response
 	 */
 	public function get_admin_notices( WP_REST_Request $request ): WP_REST_Response {
-		$scope   = $request->get_param( 'scope' ) ?: '';
+		$scope   = $request->get_param( 'scope' ) ? $request->get_param( 'scope' ) : '';
 		$notices = $this->manager->get_notices( $scope );
 
 		return rest_ensure_response( $notices );
+	}
+
+	/**
+	 * Dismiss a notice by key.
+	 *
+	 * @param WP_REST_Request $request REST request.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function dismiss_notice( WP_REST_Request $request ): WP_REST_Response {
+		$key    = $request->get_param( 'key' );
+		$prefix = $this->manager->get_prefix();
+
+		$dismissed = get_option( $prefix . '_dismissed_notices', [] );
+
+		if ( ! in_array( $key, $dismissed, true ) ) {
+			$dismissed[] = $key;
+			update_option( $prefix . '_dismissed_notices', $dismissed );
+		}
+
+		return new WP_REST_Response( [ 'success' => true ], 200 );
 	}
 
 	/**

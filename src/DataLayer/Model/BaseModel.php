@@ -1,4 +1,9 @@
 <?php
+/**
+ * Base model class for WPKit data layer.
+ *
+ * @package WeDevs\WPKit\DataLayer\Model
+ */
 
 namespace WeDevs\WPKit\DataLayer\Model;
 
@@ -109,6 +114,8 @@ abstract class BaseModel implements ModelInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param int $id Object ID.
 	 */
 	public function set_id( int $id ): void {
 		$this->id = absint( $id );
@@ -123,6 +130,8 @@ abstract class BaseModel implements ModelInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param bool $read Read state.
 	 */
 	public function set_object_read( bool $read = true ): void {
 		$this->object_read = $read;
@@ -314,6 +323,8 @@ abstract class BaseModel implements ModelInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param bool $force_delete Whether to force delete.
 	 */
 	public function delete( bool $force_delete = false ): bool {
 		$check = apply_filters( $this->hook_prefix . 'pre_delete_' . $this->object_type, null, $this, $force_delete );
@@ -360,14 +371,14 @@ abstract class BaseModel implements ModelInterface {
 	 *
 	 * @return static|null The populated model, or null if not found.
 	 */
-	public static function find( int $id ): ?static {
+	public static function find( int $id ): ?self {
 		$store = DataLayerFactory::make_store( static::class );
 
 		if ( ! $store ) {
 			return null;
 		}
 
-		$model = DataLayerFactory::make_model( static::class, $id );
+		$model             = DataLayerFactory::make_model( static::class, $id );
 		$model->data_store = $store;
 
 		try {
@@ -418,7 +429,7 @@ abstract class BaseModel implements ModelInterface {
 					continue;
 				}
 
-				$model = new static();
+				$model             = new static();
 				$model->data_store = $store;
 				$model->set_id( (int) ( $row->{$id_field} ?? 0 ) );
 				$model->set_props( (array) $row );

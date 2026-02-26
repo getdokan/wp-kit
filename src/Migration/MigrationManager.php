@@ -1,4 +1,9 @@
 <?php
+/**
+ * Orchestrates migration execution.
+ *
+ * @package WeDevs\WPKit\Migration
+ */
 
 namespace WeDevs\WPKit\Migration;
 
@@ -32,6 +37,8 @@ class MigrationManager {
 	protected string $prefix;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param MigrationRegistry $registry Migration registry.
 	 * @param string            $prefix   Plugin-specific prefix (e.g., 'dokan').
 	 */
@@ -87,6 +94,8 @@ class MigrationManager {
 
 	/**
 	 * Run all pending migrations in version order.
+	 *
+	 * @throws \Throwable If a migration fails.
 	 */
 	public function do_upgrade(): void {
 		$upgrades = $this->get_upgrades();
@@ -100,8 +109,16 @@ class MigrationManager {
 					$upgrader         = $upgrader['upgrader'];
 				}
 
-				call_user_func( [ $upgrader, 'run' ], $required_version );
-				call_user_func( [ $upgrader, 'update_db_version' ] );
+				$this->log_migration_start( $version, $upgrader );
+
+				try {
+					call_user_func( [ $upgrader, 'run' ], $required_version );
+					call_user_func( [ $upgrader, 'update_db_version' ] );
+					$this->log_migration_complete( $version );
+				} catch ( \Throwable $e ) {
+					$this->log_migration_failed( $version, $e->getMessage() );
+					throw $e;
+				}
 			}
 		}
 
@@ -126,5 +143,78 @@ class MigrationManager {
 	 */
 	public function get_prefix(): string {
 		return $this->prefix;
+	}
+
+	/**
+	 * Get a migration status reader.
+	 *
+	 * @return MigrationStatus
+	 */
+	public function get_status(): MigrationStatus {
+		return new MigrationStatus( $this );
+	}
+
+	/**
+	 * Get the option key for the migration log.
+	 *
+	 * @return string
+	 */
+	public function get_log_option_key(): string {
+		return $this->prefix . '_migration_log';
+	}
+
+	/**
+	 * Log migration start.
+	 *
+	 * @param string $version  Migration version.
+	 * @param string $class    Migration class name.
+	 */
+	protected function log_migration_start( string $version, string $class ): void {
+		$log = get_option( $this->get_log_option_key(), [] );
+
+		$log[ $version ] = [
+			'version'      => $version,
+			'class'        => $class,
+			'status'       => 'running',
+			'started_at'   => time(),
+			'completed_at' => null,
+			'error'        => null,
+		];
+
+		update_option( $this->get_log_option_key(), $log, false );
+	}
+
+	/**
+	 * Log migration completion.
+	 *
+	 * @param string $version Migration version.
+	 */
+	protected function log_migration_complete( string $version ): void {
+		$log = get_option( $this->get_log_option_key(), [] );
+
+		if ( isset( $log[ $version ] ) ) {
+			$log[ $version ]['status']       = 'completed';
+			$log[ $version ]['completed_at'] = time();
+
+			update_option( $this->get_log_option_key(), $log, false );
+		}
+	}
+
+	/**
+	 * Log migration failure.
+	 *
+	 * @param string $version Migration version.
+	 * @param string $error   Error message.
+	 */
+	protected function log_migration_failed( string $version, string $error ): void {
+		$log = get_option( $this->get_log_option_key(), [] );
+
+		if ( isset( $log[ $version ] ) ) {
+			$log[ $version ]['status']       = 'failed';
+			$log[ $version ]['completed_at'] = time();
+			$log[ $version ]['error']        = $error;
+
+			update_option( $this->get_log_option_key(), $log, false );
+		}
 	}
 }

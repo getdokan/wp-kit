@@ -1,4 +1,9 @@
 <?php
+/**
+ * Typed object cache with TTL support.
+ *
+ * @package WeDevs\WPKit\Cache
+ */
 
 namespace WeDevs\WPKit\Cache;
 
@@ -45,6 +50,8 @@ class ObjectCache {
 	protected string $object_type;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param CacheEngineInterface $engine      The cache engine to use.
 	 * @param string               $object_type Object type identifier (used as cache group).
 	 * @param int                  $expiration  Default expiration in seconds.

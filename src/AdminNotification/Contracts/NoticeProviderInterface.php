@@ -1,4 +1,9 @@
 <?php
+/**
+ * Interface for notice providers.
+ *
+ * @package WeDevs\WPKit\AdminNotification
+ */
 
 namespace WeDevs\WPKit\AdminNotification\Contracts;
 

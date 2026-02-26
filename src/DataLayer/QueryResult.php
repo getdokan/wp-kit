@@ -1,4 +1,9 @@
 <?php
+/**
+ * Query result object with pagination metadata.
+ *
+ * @package WeDevs\WPKit\DataLayer
+ */
 
 namespace WeDevs\WPKit\DataLayer;
 
@@ -34,16 +39,43 @@ use Traversable;
 class QueryResult implements IteratorAggregate, Countable {
 
 	/**
+	 * Items on the current page.
+	 *
 	 * @var T[]
 	 */
 	private array $items;
 
+	/**
+	 * Total matching rows.
+	 *
+	 * @var int
+	 */
 	private int $total;
+
+	/**
+	 * Items per page.
+	 *
+	 * @var int
+	 */
 	private int $per_page;
+
+	/**
+	 * Current page number.
+	 *
+	 * @var int
+	 */
 	private int $current_page;
+
+	/**
+	 * Total number of pages.
+	 *
+	 * @var int
+	 */
 	private int $total_pages;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param T[] $items        Items on current page.
 	 * @param int $total        Total matching rows.
 	 * @param int $per_page     Items per page.
@@ -71,7 +103,7 @@ class QueryResult implements IteratorAggregate, Countable {
 	 *
 	 * @return static
 	 */
-	public static function from_array( array $result ): static {
+	public static function from_array( array $result ): self {
 		return new static(
 			is_array( $result['items'] ) ? $result['items'] : [],
 			(int) $result['total'],
@@ -170,9 +202,12 @@ class QueryResult implements IteratorAggregate, Countable {
 	 * @return array
 	 */
 	public function pluck( string $method ): array {
-		return array_map( function ( $item ) use ( $method ) {
-			return $item->{$method}();
-		}, $this->items );
+		return array_map(
+			function ( $item ) use ( $method ) {
+				return $item->{$method}();
+			},
+			$this->items
+		);
 	}
 
 	/**

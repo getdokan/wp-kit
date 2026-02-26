@@ -35,6 +35,7 @@ This guide serves two audiences:
   - [Schema Helpers](#schema-helpers)
   - [Writing Migrations](#writing-migrations)
   - [Migration Registry & Manager](#migration-registry--manager)
+  - [Migration Status](#migration-status)
   - [Background Processing](#background-processing)
 - [Admin Notifications](#admin-notifications)
 - [Extending a WPKit-Based Plugin (Third-Party Guide)](#extending-a-wpkit-based-plugin-third-party-guide)
@@ -79,8 +80,8 @@ use WeDevs\WPKit\DataLayer\DataLayerFactory;
 use WeDevs\WPKit\Migration\MigrationRegistry;
 use WeDevs\WPKit\Migration\MigrationManager;
 use WeDevs\WPKit\Migration\MigrationHooks;
+use WeDevs\WPKit\Migration\MigrationRESTController;
 use WeDevs\WPKit\AdminNotification\NoticeManager;
-use WeDevs\WPKit\AdminNotification\DismissalHandler;
 use WeDevs\WPKit\AdminNotification\NoticeRESTController;
 
 // 1. DataLayer
@@ -99,9 +100,10 @@ $manager = new MigrationManager( $registry, 'myplugin' );
 
 // 3. Admin Notifications
 $notices = new NoticeManager( 'myplugin' );
-( new DismissalHandler( 'myplugin' ) )->register();
 
-add_action( 'rest_api_init', function () use ( $notices ) {
+// 4. REST API (migration + notifications)
+add_action( 'rest_api_init', function () use ( $manager, $notices ) {
+    ( new MigrationRESTController( $manager, 'myplugin/v1' ) )->register_routes();
     ( new NoticeRESTController( $notices, 'myplugin/v1' ) )->register_routes();
 } );
 ```
@@ -982,9 +984,13 @@ $registry->get_pending_migrations();   // versions > installed, sorted by versio
 $manager = new MigrationManager( $registry, 'myplugin' );
 $manager->do_upgrade(); // Runs all pending, fires {prefix}_upgrade_finished
 
-// MigrationHooks: adds WordPress AJAX handler and filter hooks
+// MigrationHooks: adds WordPress filter hooks
 $hooks = new MigrationHooks( $manager, 'myplugin' );
 $hooks->register();
+
+// MigrationRESTController: REST API for status and upgrade
+$rest = new MigrationRESTController( $manager, 'myplugin/v1' );
+add_action( 'rest_api_init', [ $rest, 'register_routes' ] );
 ```
 
 #### WordPress Hooks Registered by MigrationHooks
@@ -993,11 +999,79 @@ $hooks->register();
 |------|------|-------------|
 | `{prefix}_upgrade_is_upgrade_required` | filter | Returns whether upgrade is needed |
 | `{prefix}_upgrade_upgrades` | filter | Returns pending upgrade list |
-| `wp_ajax_{prefix}_do_upgrade` | action | AJAX endpoint for admin-triggered upgrades |
 | `{prefix}_upgrade_finished` | action | Fires after all migrations complete |
 | `{prefix}_upgrade_is_not_required` | action | Fires when no upgrade is needed |
 
-The AJAX handler verifies the nonce `{prefix}_admin` and requires the `update_plugins` capability.
+#### Migration REST Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `{prefix}/v1/migration/status` | GET | Returns migration status, log, and summary |
+| `{prefix}/v1/migration/upgrade` | POST | Triggers admin upgrade (requires `update_plugins` capability) |
+
+#### Migration Status
+
+The migration system automatically logs each migration's execution. Use `MigrationStatus` to query the log:
+
+```php
+$status = $manager->get_status();
+
+// Full execution log (version-keyed array)
+$log = $status->get_log();
+// [
+//     '1.0.0' => [
+//         'version'      => '1.0.0',
+//         'class'        => 'App\\Migrations\\V_1_0_0',
+//         'status'       => 'completed',  // pending | running | completed | failed
+//         'started_at'   => 1708900000,
+//         'completed_at' => 1708900002,
+//         'error'        => null,
+//     ],
+// ]
+
+// Single migration entry
+$entry = $status->get_status( '1.0.0' ); // array or null
+
+// Is any migration currently running?
+$status->is_running(); // bool
+
+// Summary counts
+$summary = $status->get_summary();
+// [ 'total' => 5, 'completed' => 3, 'failed' => 0, 'running' => 1, 'pending' => 1 ]
+
+// Clear the log (for debugging or re-runs)
+$status->clear_log();
+```
+
+Failed migrations are logged with their error message. The exception is re-thrown so existing error handling is preserved:
+
+```php
+$entry = $status->get_status( '2.0.0' );
+if ( $entry && $entry['status'] === 'failed' ) {
+    error_log( 'Migration 2.0.0 failed: ' . $entry['error'] );
+}
+```
+
+#### REST API for Migration Status
+
+`MigrationRESTController` provides REST endpoints for polling migration status and triggering upgrades from the admin UI:
+
+```
+GET /wp-json/{prefix}/v1/migration/status
+```
+
+Requires the `update_plugins` capability. Returns:
+
+```json
+{
+    "summary": { "total": 5, "completed": 3, "failed": 0, "running": 1, "pending": 1 },
+    "log": { "1.0.0": { "version": "1.0.0", "status": "completed", ... } },
+    "is_running": true,
+    "is_upgrade_required": false,
+    "db_version": "1.2.0",
+    "plugin_version": "1.2.0"
+}
+```
 
 ### Background Processing
 
@@ -1040,6 +1114,16 @@ $process->dispatch(); // Schedule first batch via WP Cron
 // Status & control
 $process->is_processing(); // bool — items in queue?
 $process->cancel();        // Clear queue and unschedule cron
+
+// Progress tracking (total is tracked automatically from push_to_queue calls)
+$progress = $process->get_progress();
+// [
+//     'is_processing' => true,
+//     'total'         => 50,   // Total items pushed across all push_to_queue() calls
+//     'completed'     => 30,   // total - remaining
+//     'remaining'     => 20,   // Items still in queue
+//     'percentage'    => 60,   // (completed / total) * 100
+// ]
 ```
 
 **How it works internally:**
@@ -1130,17 +1214,14 @@ class V_1_2_0 extends MyPluginMigration {
 ( new TaskSeederProcess() )->init_hooks();
 ```
 
-**Monitoring progress:** Check the queue option to determine how many batches remain:
+**Monitoring progress:** Use the built-in `get_progress()` method:
 
 ```php
-$queue = get_option( 'myplugin_bg_seed_tasks' );
+$seeder   = new TaskSeederProcess();
+$progress = $seeder->get_progress();
 
-if ( ! empty( $queue ) && is_array( $queue ) ) {
-    $remaining = 0;
-    foreach ( $queue as $batch_group ) {
-        $remaining += is_array( $batch_group ) ? count( $batch_group ) : 0;
-    }
-    echo "Batches remaining: {$remaining}";
+if ( $progress['is_processing'] ) {
+    echo "Processing: {$progress['completed']}/{$progress['total']} batches ({$progress['percentage']}%)";
 } elseif ( get_option( 'myplugin_seeder_completed' ) ) {
     echo 'Seeding complete!';
 }
@@ -1150,7 +1231,7 @@ if ( ! empty( $queue ) && is_array( $queue ) ) {
 
 ## Admin Notifications
 
-A system for collecting, filtering, and serving admin notices via REST API with AJAX dismissal support.
+A system for collecting, filtering, and serving admin notices via REST API.
 
 ### Notice Providers
 
@@ -1245,7 +1326,7 @@ $notice = NotificationHelper::warning( 'Update Available', 'Version 2.0 is out.'
     'is_dismissible' => true,
     'actions'        => [
         NotificationHelper::link_action( 'Update Now', admin_url( 'update-core.php' ) ),
-        NotificationHelper::ajax_action( 'Remind Later', 'myplugin_snooze', 'myplugin_admin' ),
+        NotificationHelper::rest_action( 'Remind Later', '/wp-json/myplugin/v1/snooze' ),
     ],
 ] );
 ```
@@ -1258,26 +1339,9 @@ $notice = NotificationHelper::warning( 'Update Available', 'Version 2.0 is out.'
 | info | 10 | local |
 | success | 10 | local |
 
-### DismissalHandler
-
-Handles AJAX notice dismissal and persists dismissed notice keys:
-
-```php
-$handler = new DismissalHandler( 'myplugin' );
-$handler->register(); // Registers wp_ajax_{prefix}_dismiss_notice
-```
-
-Dismissed notices are stored in the `{prefix}_dismissed_notices` option as an array of keys.
-
-**AJAX endpoint details:**
-- Action: `wp_ajax_myplugin_dismiss_notice`
-- Nonce action: `myplugin_admin`
-- Required capability: `manage_options`
-- POST parameter: `key` (the notice key to dismiss)
-
 ### REST Controller
 
-Exposes notices via the WordPress REST API:
+Exposes notices via the WordPress REST API and handles notice dismissal:
 
 ```php
 $controller = new NoticeRESTController( $manager, 'myplugin/v1' );
@@ -1287,13 +1351,16 @@ add_action( 'rest_api_init', function () use ( $controller ) {
 } );
 ```
 
-**Endpoint:** `GET /wp-json/myplugin/v1/notices/admin`
+**Endpoints:**
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `scope` | string | No | `'local'` or `'global'`. Omit for all. |
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/wp-json/myplugin/v1/notices/admin` | GET | Get all notices (optional `scope` param: `local` or `global`) |
+| `/wp-json/myplugin/v1/notices/dismiss` | POST | Dismiss a notice (required `key` param) |
 
-**Permission:** Requires `manage_options` capability.
+Dismissed notices are stored in the `{prefix}_dismissed_notices` option as an array of keys.
+
+**Permission:** All endpoints require `manage_options` capability.
 
 ---
 
@@ -1625,16 +1692,28 @@ The `{prefix}` is the plugin-level prefix set via `set_filter_prefix()` (e.g., `
 |------|------|------------|-------------|
 | `{prefix}_upgrade_is_upgrade_required` | filter | `$required` | Check if upgrade is needed |
 | `{prefix}_upgrade_upgrades` | filter | `$upgrades` | Get pending upgrades list |
-| `wp_ajax_{prefix}_do_upgrade` | action | — | AJAX endpoint for admin-triggered upgrades |
 | `{prefix}_upgrade_finished` | action | — | All migrations completed |
 | `{prefix}_upgrade_is_not_required` | action | — | No upgrade needed |
+
+#### Migration REST Endpoints
+
+| Route | Method | Permission | Description |
+|-------|--------|------------|-------------|
+| `{prefix}/v1/migration/status` | GET | `update_plugins` | Returns migration log, summary, and status |
+| `{prefix}/v1/migration/upgrade` | POST | `update_plugins` | Triggers admin upgrade |
 
 ### Notification Hooks
 
 | Hook | Type | Parameters | Description |
 |------|------|------------|-------------|
 | `{prefix}_admin_notices` | filter | `$notices` | Collect/modify admin notices |
-| `wp_ajax_{prefix}_dismiss_notice` | action | — | AJAX dismissal endpoint |
+
+### Notification REST Endpoints
+
+| Route | Method | Permission | Description |
+|-------|--------|------------|-------------|
+| `{namespace}/notices/admin` | GET | `manage_options` | Get admin notices (optional `scope` param) |
+| `{namespace}/notices/dismiss` | POST | `manage_options` | Dismiss a notice (required `key` param) |
 
 ### WordPress Options Used
 
@@ -1642,5 +1721,7 @@ The `{prefix}` is the plugin-level prefix set via `set_filter_prefix()` (e.g., `
 |------------|-----------|-------------|
 | `{db_version_key}` | Migration | Stores installed DB version (e.g., `'1.2.0'`) |
 | `{prefix}_is_upgrading_db` | MigrationManager | Tracks ongoing upgrade (stores pending list) |
+| `{prefix}_migration_log` | MigrationManager | Per-migration execution log (version, status, timestamps, errors) |
 | `{prefix}_bg_{action}` | BackgroundProcess | Queue storage (array of items) |
-| `{prefix}_dismissed_notices` | DismissalHandler | Array of dismissed notice keys |
+| `{prefix}_bg_{action}_total` | BackgroundProcess | Total items pushed (for progress percentage) |
+| `{prefix}_dismissed_notices` | NoticeRESTController | Array of dismissed notice keys |

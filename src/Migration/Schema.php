@@ -1,4 +1,9 @@
 <?php
+/**
+ * Static helpers for database schema operations.
+ *
+ * @package WeDevs\WPKit\Migration
+ */
 
 namespace WeDevs\WPKit\Migration;
 

@@ -1,4 +1,9 @@
 <?php
+/**
+ * Static factory for creating models and data stores.
+ *
+ * @package WeDevs\WPKit\DataLayer
+ */
 
 namespace WeDevs\WPKit\DataLayer;
 
@@ -159,7 +164,7 @@ class DataLayerFactory {
 
 			$instance = $reflection->newInstanceWithoutConstructor();
 
-			return $property->getValue( $instance ) ?: '';
+			return $property->getValue( $instance ) ? $property->getValue( $instance ) : '';
 		} catch ( \ReflectionException $e ) {
 			return '';
 		}

@@ -1,4 +1,9 @@
 <?php
+/**
+ * Static helper methods for creating notice data structures.
+ *
+ * @package WeDevs\WPKit\AdminNotification
+ */
 
 namespace WeDevs\WPKit\AdminNotification;
 
@@ -96,23 +101,24 @@ class NotificationHelper {
 	}
 
 	/**
-	 * Build an AJAX action button config.
+	 * Build a REST API action button config.
 	 *
-	 * @param string $text         Button text.
-	 * @param string $ajax_action  The AJAX action name.
-	 * @param string $nonce_action The nonce action.
-	 * @param array  $extra        Additional action properties.
+	 * @param string $text     Button text.
+	 * @param string $endpoint REST API endpoint URL.
+	 * @param string $method   HTTP method (default: POST).
+	 * @param array  $extra    Additional action properties.
 	 *
 	 * @return array
 	 */
-	public static function ajax_action( string $text, string $ajax_action, string $nonce_action, array $extra = [] ): array {
+	public static function rest_action( string $text, string $endpoint, string $method = 'POST', array $extra = [] ): array {
 		return array_merge(
 			[
 				'type'      => 'primary',
 				'text'      => $text,
-				'ajax_data' => [
-					'action'   => $ajax_action,
-					'_wpnonce' => wp_create_nonce( $nonce_action ),
+				'rest_data' => [
+					'endpoint' => $endpoint,
+					'method'   => $method,
+					'nonce'    => wp_create_nonce( 'wp_rest' ),
 				],
 			],
 			$extra

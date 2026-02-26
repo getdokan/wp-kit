@@ -55,24 +55,33 @@ class NotificationHelperTest extends TestCase {
 		$this->assertSame( 'custom_key', $result['key'] );
 	}
 
-	public function test_ajax_action_creates_button_config(): void {
+	public function test_rest_action_creates_button_config(): void {
 		Functions\expect( 'wp_create_nonce' )
-			->with( 'my_nonce_action' )
+			->with( 'wp_rest' )
 			->once()
 			->andReturn( 'nonce_value_123' );
 
-		$result = NotificationHelper::ajax_action( 'Click Me', 'my_ajax_action', 'my_nonce_action' );
+		$result = NotificationHelper::rest_action( 'Click Me', '/wp-json/myplugin/v1/upgrade' );
 
 		$this->assertSame( 'primary', $result['type'] );
 		$this->assertSame( 'Click Me', $result['text'] );
-		$this->assertSame( 'my_ajax_action', $result['ajax_data']['action'] );
-		$this->assertSame( 'nonce_value_123', $result['ajax_data']['_wpnonce'] );
+		$this->assertSame( '/wp-json/myplugin/v1/upgrade', $result['rest_data']['endpoint'] );
+		$this->assertSame( 'POST', $result['rest_data']['method'] );
+		$this->assertSame( 'nonce_value_123', $result['rest_data']['nonce'] );
 	}
 
-	public function test_ajax_action_accepts_extra_params(): void {
+	public function test_rest_action_accepts_custom_method(): void {
 		Functions\expect( 'wp_create_nonce' )->andReturn( 'nonce' );
 
-		$result = NotificationHelper::ajax_action( 'Btn', 'action', 'nonce_action', [
+		$result = NotificationHelper::rest_action( 'Delete', '/wp-json/myplugin/v1/item', 'DELETE' );
+
+		$this->assertSame( 'DELETE', $result['rest_data']['method'] );
+	}
+
+	public function test_rest_action_accepts_extra_params(): void {
+		Functions\expect( 'wp_create_nonce' )->andReturn( 'nonce' );
+
+		$result = NotificationHelper::rest_action( 'Btn', '/endpoint', 'POST', [
 			'type' => 'secondary',
 		] );
 

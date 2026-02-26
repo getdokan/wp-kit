@@ -1,4 +1,9 @@
 <?php
+/**
+ * Cache engine interface for ObjectCache.
+ *
+ * @package WeDevs\WPKit\Cache
+ */
 
 namespace WeDevs\WPKit\Cache\Contracts;
 

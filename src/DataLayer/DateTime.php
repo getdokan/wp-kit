@@ -1,4 +1,9 @@
 <?php
+/**
+ * Standalone DateTime class for WPKit models.
+ *
+ * @package WeDevs\WPKit\DataLayer
+ */
 
 namespace WeDevs\WPKit\DataLayer;
 

@@ -1,4 +1,9 @@
 <?php
+/**
+ * Bridge between WPKit DataStoreInterface and WC_Object_Data_Store_Interface.
+ *
+ * @package WeDevs\WPKit\DataLayer\Bridge
+ */
 
 namespace WeDevs\WPKit\DataLayer\Bridge;
 
@@ -29,6 +34,8 @@ class WCDataStoreBridge implements \WC_Object_Data_Store_Interface {
 	protected DataStoreInterface $wpkit_store;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param DataStoreInterface $wpkit_store The WPKit data store.
 	 */
 	public function __construct( DataStoreInterface $wpkit_store ) {
@@ -37,6 +44,8 @@ class WCDataStoreBridge implements \WC_Object_Data_Store_Interface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param mixed $data Data object to create.
 	 */
 	public function create( &$data ) {
 		if ( $data instanceof WCModelAdapter ) {
@@ -48,6 +57,8 @@ class WCDataStoreBridge implements \WC_Object_Data_Store_Interface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param mixed $data Data object to read.
 	 */
 	public function read( &$data ) {
 		if ( $data instanceof WCModelAdapter ) {
@@ -58,6 +69,8 @@ class WCDataStoreBridge implements \WC_Object_Data_Store_Interface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param mixed $data Data object to update.
 	 */
 	public function update( &$data ) {
 		if ( $data instanceof WCModelAdapter ) {
@@ -68,6 +81,9 @@ class WCDataStoreBridge implements \WC_Object_Data_Store_Interface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param mixed $data Data object to delete.
+	 * @param array $args Additional arguments.
 	 */
 	public function delete( &$data, $args = [] ) {
 		if ( $data instanceof WCModelAdapter ) {
@@ -78,6 +94,8 @@ class WCDataStoreBridge implements \WC_Object_Data_Store_Interface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param mixed $data Data object to read meta for.
 	 */
 	public function read_meta( &$data ) {
 		return [];
@@ -85,6 +103,9 @@ class WCDataStoreBridge implements \WC_Object_Data_Store_Interface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param mixed  $data Data object.
+	 * @param object $meta Meta object to delete.
 	 */
 	public function delete_meta( &$data, $meta ) {
 		return false;
@@ -92,6 +113,9 @@ class WCDataStoreBridge implements \WC_Object_Data_Store_Interface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param mixed  $data Data object.
+	 * @param object $meta Meta object to add.
 	 */
 	public function add_meta( &$data, $meta ) {
 		return false;
@@ -99,6 +123,9 @@ class WCDataStoreBridge implements \WC_Object_Data_Store_Interface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param mixed  $data Data object.
+	 * @param object $meta Meta object to update.
 	 */
 	public function update_meta( &$data, $meta ) {
 		return false;

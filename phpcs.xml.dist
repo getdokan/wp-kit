@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<ruleset name="WPKit Coding Standards">
+	<description>PHP CodeSniffer rules for wedevs/wp-kit.</description>
+
+	<!-- Scan these directories -->
+	<file>src</file>
+
+	<!-- Show progress and sniff codes in all reports -->
+	<arg value="ps"/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+
+	<!-- Strip the filepaths down to the relevant bit. -->
+	<arg name="basepath" value="."/>
+
+	<!-- Check for cross-version support for PHP 7.4 and higher. -->
+	<config name="testVersion" value="7.4-"/>
+
+	<!-- WordPress Coding Standards -->
+	<rule ref="WordPress">
+		<!-- Allow short array syntax -->
+		<exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+		<!-- Allow PSR-4 file naming for classes -->
+		<exclude name="WordPress.Files.FileName"/>
+		<!-- Allow namespaced code -->
+		<exclude name="WordPress.NamingConventions.PrefixAllGlobals"/>
+	</rule>
+
+	<!--
+		Suppress direct DB and prepared SQL warnings for the query builder.
+		BaseDataStore builds SQL safely via $wpdb->prepare() internally.
+	-->
+	<rule ref="WordPress.DB.DirectDatabaseQuery">
+		<exclude-pattern>src/DataLayer/DataStore/BaseDataStore\.php</exclude-pattern>
+		<exclude-pattern>src/Migration/Schema\.php</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.DB.PreparedSQL">
+		<exclude-pattern>src/DataLayer/DataStore/BaseDataStore\.php</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.DB.PreparedSQLPlaceholders">
+		<exclude-pattern>src/DataLayer/DataStore/BaseDataStore\.php</exclude-pattern>
+	</rule>
+
+	<!-- Allow reserved keyword parameter names (e.g. $namespace, $object, $class) -->
+	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+		<severity>0</severity>
+	</rule>
+
+	<!-- Allow unused parameters in filter/action callbacks and REST handlers -->
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+		<severity>0</severity>
+	</rule>
+
+	<!-- PHPCompatibility -->
+	<rule ref="PHPCompatibilityWP"/>
+</ruleset>

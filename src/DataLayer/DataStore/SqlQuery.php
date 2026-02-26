@@ -1,4 +1,9 @@
 <?php
+/**
+ * Standalone SQL clause builder.
+ *
+ * @package WeDevs\WPKit\DataLayer\DataStore
+ */
 
 namespace WeDevs\WPKit\DataLayer\DataStore;
 
@@ -42,6 +47,8 @@ class SqlQuery {
 	protected string $filter_prefix = '';
 
 	/**
+	 * Constructor.
+	 *
 	 * @param string $context Context identifier for hook filtering.
 	 */
 	public function __construct( string $context = '' ) {
@@ -118,15 +125,15 @@ class SqlQuery {
 	 * @return string
 	 */
 	public function get_query_statement(): string {
-		$select   = $this->get_sql_clause( 'select' );
-		$from     = $this->get_sql_clause( 'from' );
-		$join     = $this->get_sql_clause( 'join' );
+		$select    = $this->get_sql_clause( 'select' );
+		$from      = $this->get_sql_clause( 'from' );
+		$join      = $this->get_sql_clause( 'join' );
 		$left_join = $this->get_sql_clause( 'left_join' );
-		$where    = $this->get_sql_clause( 'where' );
-		$group_by = $this->get_sql_clause( 'group_by' );
-		$having   = $this->get_sql_clause( 'having' );
-		$order_by = $this->get_sql_clause( 'order_by' );
-		$limit    = $this->get_sql_clause( 'limit' );
+		$where     = $this->get_sql_clause( 'where' );
+		$group_by  = $this->get_sql_clause( 'group_by' );
+		$having    = $this->get_sql_clause( 'having' );
+		$order_by  = $this->get_sql_clause( 'order_by' );
+		$limit     = $this->get_sql_clause( 'limit' );
 
 		$query = "SELECT {$select} FROM {$from}";
 
