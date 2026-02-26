@@ -1,4 +1,9 @@
 <?php
+/**
+ * WordPress wp_cache implementation of CacheEngineInterface.
+ *
+ * @package WeDevs\WPKit\Cache
+ */
 
 namespace WeDevs\WPKit\Cache;
 
@@ -25,6 +30,8 @@ class WPCacheEngine implements CacheEngineInterface {
 	protected string $cache_key_prefix;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param string $prefix Consumer-provided prefix (e.g., 'dokan').
 	 */
 	public function __construct( string $prefix ) {
@@ -44,6 +51,9 @@ class WPCacheEngine implements CacheEngineInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param string $key   The cache key.
+	 * @param string $group The cache group.
 	 */
 	public function get( string $key, string $group = '' ) {
 		$prefixed_key = $this->get_prefixed_key( $key, $group );
@@ -54,6 +64,9 @@ class WPCacheEngine implements CacheEngineInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param string[] $keys  The cache keys.
+	 * @param string   $group The cache group.
 	 */
 	public function get_many( array $keys, string $group = '' ): array {
 		$prefix  = $this->get_cache_prefix( $group );
@@ -83,6 +96,11 @@ class WPCacheEngine implements CacheEngineInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param string $key        The cache key.
+	 * @param mixed  $value      The value to cache.
+	 * @param string $group      The cache group.
+	 * @param int    $expiration Expiration in seconds.
 	 */
 	public function set( string $key, $value, string $group = '', int $expiration = 0 ): bool {
 		$prefixed_key = $this->get_prefixed_key( $key, $group );
@@ -92,6 +110,10 @@ class WPCacheEngine implements CacheEngineInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param array  $items      Associative array of key => value.
+	 * @param string $group      The cache group.
+	 * @param int    $expiration Expiration in seconds.
 	 */
 	public function set_many( array $items, string $group = '', int $expiration = 0 ): array {
 		$prefix         = $this->get_cache_prefix( $group );
@@ -106,6 +128,9 @@ class WPCacheEngine implements CacheEngineInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param string $key   The cache key.
+	 * @param string $group The cache group.
 	 */
 	public function delete( string $key, string $group = '' ): bool {
 		$prefixed_key = $this->get_prefixed_key( $key, $group );
@@ -115,6 +140,9 @@ class WPCacheEngine implements CacheEngineInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param string $key   The cache key.
+	 * @param string $group The cache group.
 	 */
 	public function exists( string $key, string $group = '' ): bool {
 		$prefixed_key = $this->get_prefixed_key( $key, $group );
@@ -124,6 +152,8 @@ class WPCacheEngine implements CacheEngineInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param string $group The cache group to flush.
 	 */
 	public function flush_group( string $group = '' ): bool {
 		return $this->invalidate_cache_group( $group );

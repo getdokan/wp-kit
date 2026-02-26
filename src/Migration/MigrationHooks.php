@@ -1,4 +1,9 @@
 <?php
+/**
+ * Wires the migration system into WordPress hooks.
+ *
+ * @package WeDevs\WPKit\Migration
+ */
 
 namespace WeDevs\WPKit\Migration;
 
@@ -24,6 +29,8 @@ class MigrationHooks {
 	protected string $prefix;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param MigrationManager $manager Migration manager.
 	 * @param string           $prefix  Plugin-specific prefix (e.g., 'dokan').
 	 */

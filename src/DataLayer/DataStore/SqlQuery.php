@@ -1,4 +1,9 @@
 <?php
+/**
+ * Standalone SQL clause builder.
+ *
+ * @package WeDevs\WPKit\DataLayer\DataStore
+ */
 
 namespace WeDevs\WPKit\DataLayer\DataStore;
 
@@ -42,6 +47,8 @@ class SqlQuery {
 	protected string $filter_prefix = '';
 
 	/**
+	 * Constructor.
+	 *
 	 * @param string $context Context identifier for hook filtering.
 	 */
 	public function __construct( string $context = '' ) {

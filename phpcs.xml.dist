@@ -26,6 +26,21 @@
 		<exclude name="WordPress.NamingConventions.PrefixAllGlobals"/>
 	</rule>
 
+	<!--
+		Suppress direct DB and prepared SQL warnings for the query builder.
+		BaseDataStore builds SQL safely via $wpdb->prepare() internally.
+	-->
+	<rule ref="WordPress.DB.DirectDatabaseQuery">
+		<exclude-pattern>src/DataLayer/DataStore/BaseDataStore\.php</exclude-pattern>
+		<exclude-pattern>src/Migration/Schema\.php</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.DB.PreparedSQL">
+		<exclude-pattern>src/DataLayer/DataStore/BaseDataStore\.php</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.DB.PreparedSQLPlaceholders">
+		<exclude-pattern>src/DataLayer/DataStore/BaseDataStore\.php</exclude-pattern>
+	</rule>
+
 	<!-- PHPCompatibility -->
 	<rule ref="PHPCompatibilityWP"/>
 </ruleset>

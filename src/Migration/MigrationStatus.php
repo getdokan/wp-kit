@@ -1,4 +1,9 @@
 <?php
+/**
+ * Read-only migration status service.
+ *
+ * @package WeDevs\WPKit\Migration
+ */
 
 namespace WeDevs\WPKit\Migration;
 
@@ -25,6 +30,8 @@ class MigrationStatus {
 	protected MigrationManager $manager;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param MigrationManager $manager Migration manager instance.
 	 */
 	public function __construct( MigrationManager $manager ) {
@@ -62,7 +69,7 @@ class MigrationStatus {
 		$log = $this->get_log();
 
 		foreach ( $log as $entry ) {
-			if ( $entry['status'] === 'running' ) {
+			if ( 'running' === $entry['status'] ) {
 				return true;
 			}
 		}

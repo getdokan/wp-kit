@@ -1,4 +1,9 @@
 <?php
+/**
+ * REST API controller for migration status and upgrades.
+ *
+ * @package WeDevs\WPKit\Migration
+ */
 
 namespace WeDevs\WPKit\Migration;
 
@@ -26,6 +31,8 @@ class MigrationRESTController {
 	protected string $namespace;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param MigrationManager $manager   Migration manager.
 	 * @param string           $namespace REST API namespace (e.g., 'myplugin/v1').
 	 */

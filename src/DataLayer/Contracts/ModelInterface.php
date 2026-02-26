@@ -1,4 +1,9 @@
 <?php
+/**
+ * Interface for data models.
+ *
+ * @package WeDevs\WPKit\DataLayer\Contracts
+ */
 
 namespace WeDevs\WPKit\DataLayer\Contracts;
 

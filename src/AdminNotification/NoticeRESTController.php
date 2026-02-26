@@ -1,4 +1,9 @@
 <?php
+/**
+ * REST API controller for admin notices.
+ *
+ * @package WeDevs\WPKit\AdminNotification
+ */
 
 namespace WeDevs\WPKit\AdminNotification;
 
@@ -33,6 +38,8 @@ class NoticeRESTController {
 	protected string $base = 'notices';
 
 	/**
+	 * Constructor.
+	 *
 	 * @param NoticeManager $manager   Notice manager.
 	 * @param string        $namespace REST API namespace (e.g., 'dokan/v1').
 	 */
@@ -93,7 +100,7 @@ class NoticeRESTController {
 	 * @return WP_REST_Response
 	 */
 	public function get_admin_notices( WP_REST_Request $request ): WP_REST_Response {
-		$scope   = $request->get_param( 'scope' ) ?: '';
+		$scope   = $request->get_param( 'scope' ) ? $request->get_param( 'scope' ) : '';
 		$notices = $this->manager->get_notices( $scope );
 
 		return rest_ensure_response( $notices );

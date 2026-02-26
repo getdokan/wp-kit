@@ -1,4 +1,9 @@
 <?php
+/**
+ * Base data store with SQL query building and integrated caching.
+ *
+ * @package WeDevs\WPKit\DataLayer\DataStore
+ */
 
 namespace WeDevs\WPKit\DataLayer\DataStore;
 
@@ -70,6 +75,8 @@ abstract class BaseDataStore extends SqlQuery implements DataStoreInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param ModelInterface $model The model to create.
 	 */
 	public function create( ModelInterface &$model ) {
 		$data = $this->map_model_to_db_data( $model );
@@ -92,6 +99,10 @@ abstract class BaseDataStore extends SqlQuery implements DataStoreInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param ModelInterface $model The model to populate.
+	 *
+	 * @throws Exception If the entity has no ID or is not found.
 	 */
 	public function read( ModelInterface &$model ) {
 		global $wpdb;
@@ -150,6 +161,8 @@ abstract class BaseDataStore extends SqlQuery implements DataStoreInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param ModelInterface $model The model to update.
 	 */
 	public function update( ModelInterface &$model ) {
 		global $wpdb;
@@ -177,6 +190,9 @@ abstract class BaseDataStore extends SqlQuery implements DataStoreInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param ModelInterface $model The model to delete.
+	 * @param array          $args  Additional arguments.
 	 */
 	public function delete( ModelInterface &$model, array $args = [] ) {
 		$model_id = $model->get_id();
@@ -202,6 +218,10 @@ abstract class BaseDataStore extends SqlQuery implements DataStoreInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param array $data Associative array of column => value conditions.
+	 *
+	 * @throws Exception If the delete query fails.
 	 */
 	public function delete_by( array $data ): int {
 		global $wpdb;
@@ -226,6 +246,11 @@ abstract class BaseDataStore extends SqlQuery implements DataStoreInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param array $where          Conditions for matching records.
+	 * @param array $data_to_update Data to update.
+	 *
+	 * @throws Exception If the update query fails.
 	 */
 	public function update_by( array $where, array $data_to_update ): int {
 		global $wpdb;

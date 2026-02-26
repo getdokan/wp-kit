@@ -1,4 +1,9 @@
 <?php
+/**
+ * Static helper methods for creating notice data structures.
+ *
+ * @package WeDevs\WPKit\AdminNotification
+ */
 
 namespace WeDevs\WPKit\AdminNotification;
 

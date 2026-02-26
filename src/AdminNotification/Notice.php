@@ -1,4 +1,9 @@
 <?php
+/**
+ * Value object representing an admin notice.
+ *
+ * @package WeDevs\WPKit\AdminNotification
+ */
 
 namespace WeDevs\WPKit\AdminNotification;
 
@@ -64,6 +69,8 @@ class Notice {
 	public string $key;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param array $args Notice arguments.
 	 */
 	public function __construct( array $args = [] ) {

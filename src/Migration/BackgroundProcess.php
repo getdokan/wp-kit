@@ -1,4 +1,9 @@
 <?php
+/**
+ * WP Cron-based background process for batch operations.
+ *
+ * @package WeDevs\WPKit\Migration
+ */
 
 namespace WeDevs\WPKit\Migration;
 
@@ -47,6 +52,9 @@ abstract class BackgroundProcess {
 	 */
 	protected int $time_limit = 20;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		if ( ! $this->action ) {
 			$this->action = $this->prefix . '_' . md5( static::class );

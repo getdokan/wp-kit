@@ -1,4 +1,9 @@
 <?php
+/**
+ * Cache namespace trait for group-level invalidation.
+ *
+ * @package WeDevs\WPKit\Cache
+ */
 
 namespace WeDevs\WPKit\Cache;
 

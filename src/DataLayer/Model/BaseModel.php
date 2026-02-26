@@ -1,4 +1,9 @@
 <?php
+/**
+ * Base model class for WPKit data layer.
+ *
+ * @package WeDevs\WPKit\DataLayer\Model
+ */
 
 namespace WeDevs\WPKit\DataLayer\Model;
 
@@ -109,6 +114,8 @@ abstract class BaseModel implements ModelInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param int $id Object ID.
 	 */
 	public function set_id( int $id ): void {
 		$this->id = absint( $id );
@@ -123,6 +130,8 @@ abstract class BaseModel implements ModelInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param bool $read Read state.
 	 */
 	public function set_object_read( bool $read = true ): void {
 		$this->object_read = $read;
@@ -314,6 +323,8 @@ abstract class BaseModel implements ModelInterface {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * @param bool $force_delete Whether to force delete.
 	 */
 	public function delete( bool $force_delete = false ): bool {
 		$check = apply_filters( $this->hook_prefix . 'pre_delete_' . $this->object_type, null, $this, $force_delete );

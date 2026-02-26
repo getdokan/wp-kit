@@ -1,4 +1,9 @@
 <?php
+/**
+ * Interface for migration classes.
+ *
+ * @package WeDevs\WPKit\Migration\Contracts
+ */
 
 namespace WeDevs\WPKit\Migration\Contracts;
 

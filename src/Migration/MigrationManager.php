@@ -1,4 +1,9 @@
 <?php
+/**
+ * Orchestrates migration execution.
+ *
+ * @package WeDevs\WPKit\Migration
+ */
 
 namespace WeDevs\WPKit\Migration;
 
@@ -32,6 +37,8 @@ class MigrationManager {
 	protected string $prefix;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param MigrationRegistry $registry Migration registry.
 	 * @param string            $prefix   Plugin-specific prefix (e.g., 'dokan').
 	 */
@@ -87,6 +94,8 @@ class MigrationManager {
 
 	/**
 	 * Run all pending migrations in version order.
+	 *
+	 * @throws \Throwable If a migration fails.
 	 */
 	public function do_upgrade(): void {
 		$upgrades = $this->get_upgrades();
