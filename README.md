@@ -9,6 +9,38 @@ A standalone WordPress toolkit providing **DataLayer**, **Migration**, **Cache**
 
 ## Installation
 
+
+### Step 1: Add to Your Project
+
+Add the package to your `composer.json` dependencies:
+
+**Option A: Via GitHub (Recommended)**
+```json
+{
+  "repositories": [
+    {
+        "type": "vcs",
+        "url": "https://github.com/getdokan/wp-kit.git"
+    }
+  ]
+}
+```
+
+**Option B: Local Development**
+If you are developing locally and want to link the package:
+```json
+{
+  "repositories": [
+    {
+        "type": "path",
+        "url": "file:../path/to/wp-kit"
+    }
+  ]
+}
+```
+
+Now run the following command
+
 ```bash
 composer require wedevs/wp-kit
 ```
