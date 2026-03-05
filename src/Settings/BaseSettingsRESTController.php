@@ -1,4 +1,9 @@
 <?php
+/**
+ * Settings REST controller.
+ *
+ * @package WeDevs\WPKit\Settings
+ */
 
 namespace WeDevs\WPKit\Settings;
 
@@ -18,16 +23,18 @@ namespace WeDevs\WPKit\Settings;
 abstract class BaseSettingsRESTController extends \WP_REST_Controller {
 
 	/**
-	 * wp_options key prefix (e.g. "wpkit_tasks").
+	 * WordPress options key prefix (e.g. "wpkit_tasks").
 	 *
 	 * @var string
 	 */
 	protected $option_prefix;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param string $namespace     REST API namespace (e.g. "myplugin/v1").
 	 * @param string $rest_base     REST route base (e.g. "settings").
-	 * @param string $option_prefix wp_options key prefix.
+	 * @param string $option_prefix WordPress options key prefix.
 	 */
 	public function __construct( string $namespace, string $rest_base, string $option_prefix ) {
 		$this->namespace     = $namespace;
@@ -163,7 +170,7 @@ abstract class BaseSettingsRESTController extends \WP_REST_Controller {
 			$path  = $this->get_field_path( $element );
 			$value = $this->get_nested_value( $values, $path );
 
-			if ( $value !== null ) {
+			if ( null !== $value ) {
 				$element['default'] = $value;
 			}
 		}
@@ -197,18 +204,20 @@ abstract class BaseSettingsRESTController extends \WP_REST_Controller {
 		$values   = $request->get_param( 'values' );
 
 		if ( ! is_array( $values ) || empty( $scope_id ) ) {
-			return new \WP_REST_Response( [
-				'errors' => [ 'values' => 'Invalid values format.' ],
-			], 400 );
+			return new \WP_REST_Response(
+				[ 'errors' => [ 'values' => 'Invalid values format.' ] ],
+				400
+			);
 		}
 
 		$schema   = $this->get_settings_schema();
 		$page_ids = $this->get_page_ids( $schema );
 
 		if ( ! in_array( $scope_id, $page_ids, true ) ) {
-			return new \WP_REST_Response( [
-				'errors' => [ 'scopeId' => 'Invalid scope ID.' ],
-			], 400 );
+			return new \WP_REST_Response(
+				[ 'errors' => [ 'scopeId' => 'Invalid scope ID.' ] ],
+				400
+			);
 		}
 
 		$fields    = $this->get_fields_for_page( $schema, $scope_id );
@@ -219,7 +228,7 @@ abstract class BaseSettingsRESTController extends \WP_REST_Controller {
 			$path  = $this->get_field_path( $field );
 			$value = $this->get_nested_value( $values, $path );
 
-			if ( $value === null ) {
+			if ( null === $value ) {
 				continue;
 			}
 
@@ -241,7 +250,7 @@ abstract class BaseSettingsRESTController extends \WP_REST_Controller {
 			 */
 			$clean = apply_filters( "{$this->option_prefix}_settings_sanitize_field", $clean, $field, $value );
 
-			if ( $clean === null ) {
+			if ( null === $clean ) {
 				continue;
 			}
 
@@ -289,10 +298,12 @@ abstract class BaseSettingsRESTController extends \WP_REST_Controller {
 		 */
 		do_action( "{$this->option_prefix}_settings_after_save", $merged, $sanitized, $scope_id );
 
-		return new \WP_REST_Response( [
-			'success' => true,
-			'values'  => $merged,
-		] );
+		return new \WP_REST_Response(
+			[
+				'success' => true,
+				'values'  => $merged,
+			]
+		);
 	}
 
 	/**
@@ -444,7 +455,8 @@ abstract class BaseSettingsRESTController extends \WP_REST_Controller {
 				return sanitize_textarea_field( $value );
 
 			case 'color_picker':
-				return sanitize_hex_color( $value ) ?: '';
+				$hex = sanitize_hex_color( $value );
+				return $hex ? $hex : '';
 
 			case 'combine_input':
 				if ( ! is_array( $value ) ) {
@@ -486,7 +498,7 @@ abstract class BaseSettingsRESTController extends \WP_REST_Controller {
 			$path    = $this->get_field_path( $field );
 			$current = $this->get_nested_value( $values, $path );
 
-			if ( $current === null ) {
+			if ( null === $current ) {
 				$this->set_nested_value( $values, $path, $field['default'] ?? '' );
 			}
 		}
