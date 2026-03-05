@@ -1,6 +1,6 @@
 # WPKit Developer Guide
 
-A standalone WordPress PHP toolkit providing **DataLayer**, **Cache**, **Migration**, and **Admin Notification** components. Works with any WordPress plugin — no WooCommerce dependency required.
+A standalone WordPress PHP toolkit providing **DataLayer**, **Cache**, **Migration**, **Admin Notification**, and **Settings** components. Works with any WordPress plugin — no WooCommerce dependency required.
 
 **Package:** `wedevs/wp-kit`
 **Namespace:** `WeDevs\WPKit\`
@@ -12,7 +12,7 @@ A standalone WordPress PHP toolkit providing **DataLayer**, **Cache**, **Migrati
 
 This guide serves two audiences:
 
-**Plugin Authors** — You are building a WordPress plugin and want to use WPKit for your data models, database migrations, caching, and admin notifications. You will extend WPKit's base classes, configure prefixes, and wire everything together in your plugin bootstrap.
+**Plugin Authors** — You are building a WordPress plugin and want to use WPKit for your data models, database migrations, caching, admin notifications, and schema-driven settings pages. You will extend WPKit's base classes, configure prefixes, and wire everything together in your plugin bootstrap.
 
 **Third-Party Developers** — You are extending a plugin that already uses WPKit (e.g., building an add-on for Dokan, or customizing behavior via hooks). You need to understand the hook system, how to filter model data, modify SQL queries, inject custom notices, and work with the existing data layer without breaking things.
 
@@ -38,6 +38,12 @@ This guide serves two audiences:
   - [Migration Status](#migration-status)
   - [Background Processing](#background-processing)
 - [Admin Notifications](#admin-notifications)
+- [Settings](#settings)
+  - [Creating a Settings Controller](#creating-a-settings-controller)
+  - [Defining the Schema](#defining-the-schema)
+  - [Registering the Controller](#registering-the-controller)
+  - [Supported Field Variants](#supported-field-variants)
+  - [Overriding Translatable Messages](#overriding-translatable-messages)
 - [Extending a WPKit-Based Plugin (Third-Party Guide)](#extending-a-wpkit-based-plugin-third-party-guide)
   - [Modifying Model Data](#modifying-model-data)
   - [Hooking Into CRUD Lifecycle](#hooking-into-crud-lifecycle)
@@ -45,6 +51,7 @@ This guide serves two audiences:
   - [Adding Custom Admin Notices](#adding-custom-admin-notices)
   - [Adding Custom Migrations](#adding-custom-migrations)
   - [Working With the Cache](#working-with-the-cache)
+  - [Extending Settings](#extending-settings)
 - [Hook Reference](#hook-reference)
 
 ---
@@ -1364,6 +1371,204 @@ Dismissed notices are stored in the `{prefix}_dismissed_notices` option as an ar
 
 ---
 
+## Settings
+
+A schema-driven REST controller for plugin settings pages, compatible with the `@wedevs/plugin-ui` `<Settings>` component. Provides GET/POST endpoints that load, validate, sanitize, and persist settings to `wp_options` using a nested key structure.
+
+### Creating a Settings Controller
+
+Extend `BaseSettingsRESTController` and implement the required methods:
+
+```php
+use WeDevs\WPKit\Settings\BaseSettingsRESTController;
+
+class MyPluginSettingsController extends BaseSettingsRESTController {
+
+    public function __construct() {
+        parent::__construct( 'myplugin/v1', 'settings', 'myplugin_settings' );
+    }
+
+    protected function get_settings_schema(): array {
+        return [
+            // Schema elements (see "Defining the Schema" below)
+        ];
+    }
+
+    protected function get_permission_error_message( string $context ): string {
+        if ( 'write' === $context ) {
+            return __( 'You do not have permission to update settings.', 'myplugin' );
+        }
+        return __( 'You do not have permission to view settings.', 'myplugin' );
+    }
+
+    protected function get_validation_messages(): array {
+        return [
+            'number'          => __( 'Must be a numeric value.', 'myplugin' ),
+            'switch'          => __( 'Must be "on" or "off".', 'myplugin' ),
+            'invalid_option'  => __( 'Invalid option selected.', 'myplugin' ),
+            'must_be_array'   => __( 'Must be an array.', 'myplugin' ),
+            'invalid_options' => __( 'Contains invalid options.', 'myplugin' ),
+            'color_picker'    => __( 'Must be a valid hex color (e.g. #ff0000).', 'myplugin' ),
+            'must_be_object'  => __( 'Must be an object.', 'myplugin' ),
+        ];
+    }
+}
+```
+
+The constructor takes three arguments:
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `$namespace` | REST API namespace | `'myplugin/v1'` |
+| `$rest_base` | Route base path | `'settings'` |
+| `$option_prefix` | `wp_options` key prefix | `'myplugin_settings'` |
+
+Settings are stored as `{option_prefix}_{page_id}` in `wp_options` (e.g., `myplugin_settings_general`).
+
+### Defining the Schema
+
+The schema is a flat array of element objects that the `<Settings>` component renders. Each element has a `type` (`page`, `tab`, `section`, `field`, etc.) and fields reference their parents via `page_id`, `tab_id`, `section_id`, etc.
+
+```php
+protected function get_settings_schema(): array {
+    return [
+        [
+            'type' => 'page',
+            'id'   => 'general',
+            'title' => 'General',
+        ],
+        [
+            'type'    => 'section',
+            'id'      => 'store',
+            'page_id' => 'general',
+            'title'   => 'Store Settings',
+        ],
+        [
+            'type'       => 'field',
+            'id'         => 'store_name',
+            'variant'    => 'text',
+            'page_id'    => 'general',
+            'section_id' => 'store',
+            'title'      => 'Store Name',
+            'default'    => '',
+        ],
+        [
+            'type'       => 'field',
+            'id'         => 'enable_tax',
+            'variant'    => 'switch',
+            'page_id'    => 'general',
+            'section_id' => 'store',
+            'title'      => 'Enable Tax',
+            'default'    => 'off',
+        ],
+        [
+            'type'       => 'field',
+            'id'         => 'currency',
+            'variant'    => 'select',
+            'page_id'    => 'general',
+            'section_id' => 'store',
+            'title'      => 'Currency',
+            'default'    => 'USD',
+            'options'    => [
+                [ 'label' => 'US Dollar', 'value' => 'USD' ],
+                [ 'label' => 'Euro', 'value' => 'EUR' ],
+            ],
+        ],
+    ];
+}
+```
+
+Values are stored in a nested structure derived from the field's parent IDs. For the schema above, the `wp_options` entry `myplugin_settings_general` would contain:
+
+```php
+[
+    'store' => [
+        'store_name' => 'My Store',
+        'enable_tax' => 'on',
+        'currency'   => 'USD',
+    ],
+]
+```
+
+### Registering the Controller
+
+```php
+add_action( 'rest_api_init', function () {
+    $controller = new MyPluginSettingsController();
+    $controller->register_routes();
+} );
+```
+
+**Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/wp-json/myplugin/v1/settings` | GET | Returns schema with current values populated in `default` props |
+| `/wp-json/myplugin/v1/settings` | POST | Saves values; requires `scopeId` (page ID) and `values` (nested object) |
+
+**POST request body example:**
+
+```json
+{
+    "scopeId": "general",
+    "values": {
+        "store": {
+            "store_name": "My Store",
+            "enable_tax": "on",
+            "currency": "EUR"
+        }
+    }
+}
+```
+
+### Supported Field Variants
+
+The controller provides built-in validation and sanitization for these variants:
+
+| Variant | Value Type | Sanitization | Validation |
+|---------|-----------|--------------|------------|
+| `text` | string | `sanitize_text_field()` | — |
+| `number` | numeric | `intval()` | `is_numeric()` |
+| `switch` | `"on"` / `"off"` | Whitelist check | Must be `"on"` or `"off"` |
+| `select` | string | `sanitize_text_field()` | Must be in `options[].value` |
+| `radio_capsule` | string | `sanitize_text_field()` | Must be in `options[].value` |
+| `customize_radio` | string | `sanitize_text_field()` | Must be in `options[].value` |
+| `multicheck` | array | `array_map( 'sanitize_text_field' )` | All values must be in `options[].value` |
+| `textarea` | string | `sanitize_textarea_field()` | — |
+| `color_picker` | string | `sanitize_hex_color()` | Must match `#rrggbb` |
+| `combine_input` | object | `array_map( 'sanitize_text_field' )` | Must be an array |
+| `html` | — | Skipped (display-only) | — |
+| `base_field_label` | — | Skipped (display-only) | — |
+
+### Overriding Translatable Messages
+
+The base class provides English fallback strings. Subclasses **must** override `get_permission_error_message()` and `get_validation_messages()` with the plugin's text domain:
+
+```php
+protected function get_permission_error_message( string $context ): string {
+    if ( 'write' === $context ) {
+        return __( 'You do not have permission to update settings.', 'myplugin' );
+    }
+    return __( 'You do not have permission to view settings.', 'myplugin' );
+}
+
+protected function get_validation_messages(): array {
+    return [
+        'number'          => __( 'Must be a numeric value.', 'myplugin' ),
+        'switch'          => __( 'Must be "on" or "off".', 'myplugin' ),
+        'invalid_option'  => __( 'Invalid option selected.', 'myplugin' ),
+        'must_be_array'   => __( 'Must be an array.', 'myplugin' ),
+        'invalid_options' => __( 'Contains invalid options.', 'myplugin' ),
+        'color_picker'    => __( 'Must be a valid hex color (e.g. #ff0000).', 'myplugin' ),
+        'must_be_object'  => __( 'Must be an object.', 'myplugin' ),
+    ];
+}
+```
+
+Validation messages can also be filtered at runtime via the `{prefix}_settings_validation_messages` filter.
+
+---
+
 ## Extending a WPKit-Based Plugin (Third-Party Guide)
 
 This section is for developers building add-ons or customizations for a plugin that uses WPKit. All examples assume a host plugin with prefix `dokan` — replace with the actual plugin's prefix.
@@ -1641,6 +1846,87 @@ if ( $store && $store->get_cache() ) {
 }
 ```
 
+### Extending Settings
+
+If the host plugin uses `BaseSettingsRESTController`, you can extend its settings via filters. All hooks are prefixed with the controller's `option_prefix` (e.g., `dokan_settings`).
+
+#### Adding Fields to the Schema
+
+```php
+// Add a custom field to the settings schema
+add_filter( 'dokan_settings_settings_schema', function ( $schema, $request ) {
+    $schema[] = [
+        'type'       => 'field',
+        'id'         => 'my_addon_feature',
+        'variant'    => 'switch',
+        'page_id'    => 'general',
+        'section_id' => 'store',
+        'title'      => 'My Add-on Feature',
+        'default'    => 'off',
+    ];
+    return $schema;
+}, 10, 2 );
+```
+
+#### Modifying Values Before Save
+
+```php
+// Enforce a business rule before saving
+add_filter( 'dokan_settings_settings_before_save', function ( $sanitized, $values, $scope_id ) {
+    if ( $scope_id === 'general' && isset( $sanitized['store']['commission'] ) ) {
+        $sanitized['store']['commission'] = min( $sanitized['store']['commission'], 50 );
+    }
+    return $sanitized;
+}, 10, 3 );
+```
+
+#### Reacting After Save
+
+```php
+// Clear a cache or sync when settings change
+add_action( 'dokan_settings_settings_after_save', function ( $merged, $sanitized, $scope_id ) {
+    if ( $scope_id === 'payment' ) {
+        delete_transient( 'my_addon_payment_config' );
+    }
+}, 10, 3 );
+```
+
+#### Custom Validation
+
+```php
+// Add validation for a specific field
+add_filter( 'dokan_settings_settings_validate_field', function ( $error, $field, $value ) {
+    if ( $field['id'] === 'api_key' && strlen( $value ) < 20 ) {
+        return 'API key must be at least 20 characters.';
+    }
+    return $error;
+}, 10, 3 );
+```
+
+#### Custom Sanitization
+
+```php
+// Override sanitization for a specific field
+add_filter( 'dokan_settings_settings_sanitize_field', function ( $clean, $field, $value ) {
+    if ( $field['id'] === 'custom_css' ) {
+        return wp_strip_all_tags( $value );
+    }
+    return $clean;
+}, 10, 3 );
+```
+
+#### Changing Permission Requirements
+
+```php
+// Allow editors to view settings but not save
+add_filter( 'dokan_settings_settings_capability', function ( $capability, $context, $request ) {
+    if ( $context === 'read' ) {
+        return 'edit_pages';
+    }
+    return $capability;
+}, 10, 3 );
+```
+
 ---
 
 ## Hook Reference
@@ -1701,6 +1987,36 @@ The `{prefix}` is the plugin-level prefix set via `set_filter_prefix()` (e.g., `
 |-------|--------|------------|-------------|
 | `{prefix}/v1/migration/status` | GET | `update_plugins` | Returns migration log, summary, and status |
 | `{prefix}/v1/migration/upgrade` | POST | `update_plugins` | Triggers admin upgrade |
+
+### Settings Hooks
+
+The `{prefix}` is the `option_prefix` passed to the controller's constructor (e.g., `dokan_settings`).
+
+| Hook | Type | Parameters | Description |
+|------|------|------------|-------------|
+| `{prefix}_settings_capability` | filter | `$capability, $context, $request` | Customize required capability (`$context` is `'read'` or `'write'`) |
+| `{prefix}_settings_schema` | filter | `$schema, $request` | Modify schema before values are loaded |
+| `{prefix}_settings_get_response` | filter | `$response_data, $request` | Modify full GET response (schema + values) |
+| `{prefix}_settings_loaded_values` | filter | `$values, $schema` | Modify loaded values after defaults applied |
+| `{prefix}_settings_validate_field` | filter | `$error, $field, $value` | Override validation for a single field |
+| `{prefix}_settings_validation_errors` | filter | `$errors, $values, $scope_id` | Add/remove validation errors before rejecting |
+| `{prefix}_settings_validation_messages` | filter | `$messages` | Translate/customize error message strings |
+| `{prefix}_settings_sanitize_field` | filter | `$clean, $field, $value` | Override sanitization for a single field |
+| `{prefix}_settings_before_save` | filter | `$sanitized, $values, $scope_id` | Modify sanitized values before DB write |
+| `{prefix}_settings_after_save` | action | `$merged, $sanitized, $scope_id` | React after settings are saved |
+
+#### Settings REST Endpoints
+
+| Route | Method | Permission | Description |
+|-------|--------|------------|-------------|
+| `{namespace}/{rest_base}` | GET | `manage_options` | Returns schema with current values |
+| `{namespace}/{rest_base}` | POST | `manage_options` | Saves values for a `scopeId` (page ID) |
+
+#### Settings WordPress Options
+
+| Option Key | Description |
+|------------|-------------|
+| `{option_prefix}_{page_id}` | Nested settings values for a page (e.g., `myplugin_settings_general`) |
 
 ### Notification Hooks
 
