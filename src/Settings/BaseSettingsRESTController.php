@@ -1,9 +1,4 @@
 <?php
-/**
- * Settings REST controller.
- *
- * @package WeDevs\WPKit\Settings
- */
 
 namespace WeDevs\WPKit\Settings;
 
@@ -435,7 +430,7 @@ abstract class BaseSettingsRESTController extends \WP_REST_Controller {
 
 		switch ( $variant ) {
 			case 'number':
-				return intval( $value );
+				return is_float( $value + 0 ) ? floatval( $value ) : intval( $value );
 
 			case 'switch':
 				return in_array( $value, [ 'on', 'off' ], true ) ? $value : 'off';
