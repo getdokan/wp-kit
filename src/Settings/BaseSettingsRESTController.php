@@ -1,4 +1,9 @@
 <?php
+/**
+ * Base settings REST controller.
+ *
+ * @package WeDevs\WPKit\Settings
+ */
 
 namespace WeDevs\WPKit\Settings;
 
